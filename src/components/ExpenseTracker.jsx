@@ -41,6 +41,7 @@ function ExpenseTracker(){
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [sort, setSort] = useState('newest');
   const [editItem, setEditItem] = useState(null);
+  const [incomingNotification, setIncomingNotification] = useState('');
 
   useEffect(()=>{
     try{
@@ -183,6 +184,29 @@ function ExpenseTracker(){
     }
   }
 
+  // WebSocket to receive forwarded mobile notifications (server: server/index.js)
+  useEffect(()=>{
+    let ws;
+    try{
+      ws = new WebSocket('ws://localhost:4000');
+      ws.onopen = ()=> console.log('Connected to notification bridge');
+      ws.onmessage = (ev)=>{
+        try{
+          const obj = JSON.parse(ev.data);
+          if (obj && obj.message){
+            setIncomingNotification(obj.message);
+            setToast({message:'Incoming message detected', type:'info'});
+            // also use browser notification
+            notify('Incoming message', obj.message.slice(0,80));
+            clearToastAfter();
+          }
+        }catch(e){ console.error('Invalid message from bridge', e); }
+      };
+      ws.onerror = (e)=> console.error('WS error', e);
+    }catch(e){ console.warn('Could not connect to notification bridge', e); }
+    return ()=>{ try{ if (ws) ws.close(); }catch(e){} };
+  },[]);
+
   const categories = useMemo(()=>{
     const s = new Set(expenses.map(e=> e.category || 'Other'));
     return ['All',...Array.from(s)];
@@ -312,7 +336,7 @@ function ExpenseTracker(){
       {toast && <div className={`toast ${toast.type || ''}`}>{toast.message}</div>}
       {/* Transaction parser: paste incoming SMS/email text to detect debit/credit */}
       <div style={{marginTop:6}}>
-        <TransactionParser onAdd={addExpense} notify={notify} />
+        <TransactionParser onAdd={addExpense} notify={notify} initialText={incomingNotification} />
       </div>
       <div className="exp-main">
         <div className="exp-left">

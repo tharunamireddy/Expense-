@@ -66,9 +66,21 @@ function parseTransactionMessage(text){
   };
 }
 
-export default function TransactionParser({ onAdd, notify }){
+export default function TransactionParser({ onAdd, notify, initialText }){
   const [text, setText] = useState('');
   const [detected, setDetected] = useState(null);
+
+  React.useEffect(()=>{
+    if (initialText && initialText.trim()){
+      setText(initialText);
+      // small delay to allow input to update visually
+      setTimeout(()=>{
+        const d = parseTransactionMessage(initialText);
+        if (d){ setDetected(d); if (notify) notify('Transaction detected', `${d.type==='debit' ? 'Debited' : 'Credited'} ${d.amount? '₹'+d.amount : ''}`); }
+        else { if (notify) notify('No transaction found', 'Incoming message did not contain transaction keywords'); }
+      },120);
+    }
+  },[initialText]);
 
   function handleParse(){
     const d = parseTransactionMessage(text);
