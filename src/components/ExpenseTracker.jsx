@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ExpenseForm from './ExpenseForm';
 import ExpenseList from './ExpenseList';
 import ExpenseChart from './ExpenseChart';
+import TransactionParser from './TransactionParser';
 import './ExpenseTracker.css';
 import { FiDownload, FiUpload, FiSearch } from 'react-icons/fi';
 
@@ -308,8 +309,11 @@ function ExpenseTracker(){
             </label>
         </div>
       </div>
-
       {toast && <div className={`toast ${toast.type || ''}`}>{toast.message}</div>}
+      {/* Transaction parser: paste incoming SMS/email text to detect debit/credit */}
+      <div style={{marginTop:6}}>
+        <TransactionParser onAdd={addExpense} notify={notify} />
+      </div>
       <div className="exp-main">
         <div className="exp-left">
           <ExpenseForm onAdd={addExpense} editItem={editItem} onUpdate={updateExpense} onCancelEdit={()=>setEditItem(null)} />
