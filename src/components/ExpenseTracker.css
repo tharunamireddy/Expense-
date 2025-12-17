@@ -62,31 +62,42 @@
 /* Mobile first - small screens */
 @media (max-width:640px){
   .exp-container{
-    width:calc(100% - 16px);
-    margin:10px auto;
-    padding:14px;
+    width:100%;
+    max-width:100%;
+    margin:10px 8px;
+    padding:12px;
     border-radius:12px;
-    box-shadow:0 4px 12px rgba(2,6,23,0.4);
-    overflow:hidden;
+    box-shadow:0 6px 18px rgba(2,6,23,0.35);
+    overflow-x:hidden;
+    box-sizing:border-box;
   }
   .exp-header{
     flex-direction:column;
-    gap:12px;
-    margin-bottom:14px;
+    gap:10px;
+    margin-bottom:12px;
   }
   .exp-title{font-size:18px}
   .exp-main{
     grid-template-columns:1fr;
-    gap:14px;
+    gap:12px;
+    align-items:stretch;
   }
   .card{padding:12px}
   .exp-row label{font-size:12px;margin-bottom:4px}
-  .exp-row input, .exp-row select{padding:10px;font-size:14px;max-width:100%}
-  .btn{padding:10px 12px;font-size:13px;min-width:100px}
-  .search-input{padding:10px;font-size:13px;max-width:100%}
-  .exp-controls{flex-wrap:wrap;gap:10px;align-items:stretch}
+  .exp-row input, .exp-row select{
+    padding:10px;
+    font-size:14px;
+    max-width:100%;
+    width:100%;
+    min-width:0;
+    box-sizing:border-box;
+    word-break:break-word;
+  }
+  .exp-row input[type="date"]{padding-right:36px}
+  .btn{padding:10px 12px;font-size:13px;flex:1 1 100%;min-width:0;width:100%}
+  .search-input{padding:10px;font-size:13px;max-width:100%;width:100%;min-width:0}
+  .exp-controls{flex-wrap:wrap;gap:8px;align-items:stretch}
   .control-input{flex-direction:column;align-items:stretch;width:100%}
-  .search-input{width:100%}
   .exp-list{max-height:300px}
   .exp-item{
     flex-direction:column;
@@ -94,17 +105,20 @@
     align-items:flex-start;
     padding:10px;
     margin-bottom:8px;
+    min-width:0;
   }
-  .exp-item-left{width:100%;flex-direction:row;justify-content:space-between;align-items:center}
-  .exp-amount{margin-right:0;padding:4px 8px;font-size:13px}
-  .exp-actions-row{width:100%;gap:4px}
-  .exp-btn, .exp-delete{padding:6px;font-size:12px}
-  .filters{gap:4px}
-  .chip{padding:4px 8px;font-size:11px}
+  .exp-item-left{width:100%;flex-direction:row;justify-content:space-between;align-items:center;min-width:0}
+  .exp-amount{margin-right:0;padding:4px 8px;font-size:13px;min-width:0}
+  .exp-actions-row{width:100%;gap:6px;display:flex;flex-wrap:wrap}
+  .exp-btn, .exp-delete{padding:6px;font-size:12px;min-width:0}
+  .filters{gap:6px}
+  .chip{padding:6px 8px;font-size:12px}
   .exp-summary{padding:10px;gap:8px;font-size:12px}
-  .meta-row{gap:4px;margin-bottom:6px;font-size:12px}
+  .meta-row{gap:6px;margin-bottom:6px;font-size:12px}
   .budget-bar{height:10px}
   .exp-empty{padding:14px;font-size:12px}
+  /* ensure icons and svgs don't force overflow */
+  .exp-item svg, .exp-item img, .control-icon{max-width:28px;height:auto}
 }
 
 /* Tablet - medium screens */
