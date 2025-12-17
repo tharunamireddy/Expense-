@@ -6,35 +6,60 @@ function parseTransactionMessage(text){
   if (!text || !text.trim()) return null;
   const t = text.replace(/\n/g,' ').replace(/\s+/g,' ').trim();
   const lower = t.toLowerCase();
-  const isDebited = /\bdebited\b/.test(lower);
-  const isCredited = /\bcredited\b/.test(lower);
-  if (!isDebited && !isCredited) return null;
 
-  // amount regex - captures ₹, Rs, INR or plain numbers with commas
-  const amtMatch = t.match(/(?:₹|Rs\.?|INR\s?)?\s?([\d,]+(?:\.\d{1,2})?)/i);
-  let amount = amtMatch ? amtMatch[1].replace(/,/g,'') : null;
-  if (amount) amount = Number(amount);
+  // detect direction: sent/received/credited/debited/dr/cr/transfer
+  const isSent = /\bsent\b|\bdebited\b|\bdr\b|\bwithdrawn\b|\bpaid\b/i.test(t);
+  const isReceived = /\breceived\b|\bcredited\b|\bcr\b|\bdeposit\b/i.test(t);
+  if (!isSent && !isReceived) return null;
 
-  // try to find vendor using 'at' or 'to' or 'from'
-  let vendor = null;
-  const atMatch = t.match(/(?:at|to|via|from)\s+([A-Za-z0-9 &._-]{2,40})/i);
-  if (atMatch) vendor = atMatch[1].trim();
+  const type = isSent ? 'debit' : 'credit';
 
-  // try to find date in dd-mm-yyyy or yyyy-mm-dd
-  const dateMatch = t.match(/(\d{4}-\d{2}-\d{2})|(\d{2}[-\/]\d{2}[-\/]\d{4})/);
+  // amount regex - allow ₹, Rs, INR and formats like Rs.4000.00 or ₹4,000.00
+  const amtMatch = t.match(/(?:₹|Rs\.?|INR\s?)\s*([0-9]{1,3}(?:[,0-9]*)(?:\.\d{1,2})?)|([0-9]{1,3}(?:[,0-9]*)(?:\.\d{1,2})?)\s*(?:INR|Rs\.?|₹)?/i);
+  let amount = null;
+  if (amtMatch){
+    const rawAmt = (amtMatch[1] || amtMatch[2] || '').replace(/,/g,'');
+    if (rawAmt) amount = Number(rawAmt);
+  }
+
+  // Date patterns: yyyy-mm-dd, dd-mm-yyyy, dd-mm-yy (assume 20yy)
   let dateStr = null;
-  if (dateMatch){
-    dateStr = dateMatch[0];
-    // normalize dd-mm-yyyy to yyyy-mm-dd
-    if (/\d{2}[-\/]\d{2}[-\/]\d{4}/.test(dateStr)){
-      const parts = dateStr.split(/[-\/]/);
-      dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-    }
+  const dateY = t.match(/(\d{4}-\d{2}-\d{2})/);
+  const dateDMY = t.match(/(\d{2}[-\/]\d{2}[-\/]\d{4})/);
+  const dateDM2 = t.match(/(\d{2}[-\/]\d{2}[-\/]\d{2})/);
+  if (dateY) dateStr = dateY[1];
+  else if (dateDMY) {
+    const parts = dateDMY[1].split(/[-\/]/);
+    dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+  } else if (dateDM2) {
+    const parts = dateDM2[1].split(/[-\/]/);
+    const yy = parts[2];
+    const year = Number(yy) < 50 ? `20${yy}` : `20${yy}`; // assume 20xx
+    dateStr = `${year}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+  }
+
+  // vendor/source/target extraction: prefer 'to' for sent, 'from' for received, fallback to bank names
+  let vendor = null;
+  const toMatch = t.match(/\bto\b\s+([^,.;@\n]{2,80})/i);
+  const fromMatch = t.match(/\bfrom\b\s+([^,.;@\n]{2,80})/i);
+  const inYourMatch = t.match(/in your\s+([^,.;@\n]{2,80})/i);
+  const bankMatch = t.match(/(kotak bank|kotak|airtel payments bank|airtel|uco bank|uco)/i);
+
+  if (isSent && toMatch) vendor = toMatch[1].trim();
+  else if (isReceived && fromMatch) vendor = fromMatch[1].trim();
+  else if (inYourMatch) vendor = inYourMatch[1].trim();
+  else if (bankMatch) vendor = bankMatch[1].trim();
+
+  // clean vendor (remove trailing 'on', 'upi', 'ref' tokens and excess words)
+  if (vendor){
+    vendor = vendor.replace(/(on|upi|ref|upi ref).*$/i,'').trim();
+    // limit length
+    if (vendor.length > 40) vendor = vendor.slice(0,40) + '...';
   }
 
   return {
     raw: text,
-    type: isDebited ? 'debit' : 'credit',
+    type,
     amount,
     vendor: vendor || null,
     date: dateStr || null,
